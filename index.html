@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>我的数据看板</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --ink: #1c2333;
+    --muted: #6b7280;
+    --cook: #16a34a;
+    --cook-bg: #ecfdf3;
+    --daily: #2563eb;
+    --daily-bg: #eff6ff;
+    --ring: rgba(28, 35, 51, 0.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 500px at 85% -10%, #e7ecff 0%, transparent 60%),
+      radial-gradient(900px 420px at -10% 10%, #e9fbf0 0%, transparent 55%),
+      var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 20px 40px; }
+  header { margin-bottom: 36px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .badge .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  }
+  h1 { font-size: 30px; line-height: 1.25; margin: 14px 0 8px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 0; }
+  .grid { display: grid; gap: 18px; }
+  a.card {
+    display: flex; align-items: center; gap: 18px;
+    padding: 22px 24px;
+    background: var(--card);
+    border: 1px solid var(--ring);
+    border-radius: 18px;
+    text-decoration: none; color: inherit;
+    box-shadow: 0 1px 2px rgba(20, 24, 40, 0.04);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  }
+  a.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(20, 24, 40, 0.09);
+    border-color: rgba(28, 35, 51, 0.12);
+  }
+  .icon {
+    flex: 0 0 auto;
+    width: 52px; height: 52px; border-radius: 14px;
+    display: grid; place-items: center; font-size: 26px;
+  }
+  .cook .icon { background: var(--cook-bg); }
+  .daily .icon { background: var(--daily-bg); }
+  .card-body { flex: 1 1 auto; min-width: 0; }
+  .card-body h2 { margin: 0 0 4px; font-size: 17px; }
+  .card-body p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+  .arrow { flex: 0 0 auto; color: #c4c8d2; font-size: 20px; transition: transform 0.16s ease, color 0.16s ease; }
+  a.card:hover .arrow { transform: translateX(3px); color: var(--ink); }
+  footer {
+    margin-top: 40px; text-align: center;
+    color: #a0a5b2; font-size: 12.5px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="badge"><span class="dot"></span>自动部署 · 实时更新</span>
+      <h1>我的数据看板</h1>
+      <p class="sub">记录由 botler 自动写入并构建，这里聚合了各个项目的最新网页。</p>
+    </header>
+
+    <div class="grid">
+      <a class="card cook" href="./cook/">
+        <div class="icon">🍳</div>
+        <div class="card-body">
+          <h2>饮食 &amp; 营养</h2>
+          <p>每日三餐、饮水量、营养摄入趋势与周报</p>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card daily" href="./daily-log/">
+        <div class="icon">🧻</div>
+        <div class="card-body">
+          <h2>日常记录</h2>
+          <p>排便记录与统计看板</p>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+
+    <footer>由 botler-agent 自动构建与部署</footer>
+  </div>
+</body>
+</html>
