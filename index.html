@@ -73,6 +73,14 @@
     margin-top: 40px; text-align: center;
     color: #a0a5b2; font-size: 12.5px;
   }
+  .sub a, footer a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(28, 35, 51, 0.25);
+    transition: text-decoration-color 0.15s ease;
+  }
+  .sub a:hover, footer a:hover { text-decoration-color: var(--ink); }
 </style>
 </head>
 <body>
@@ -80,7 +88,7 @@
     <header>
       <span class="badge"><span class="dot"></span>自动部署 · 实时更新</span>
       <h1>我的数据看板</h1>
-      <p class="sub">记录由 botler 自动写入并构建，这里聚合了各个项目的最新网页。</p>
+      <p class="sub">记录由 <a href="https://github.com/crossoverJie/botler-agent" target="_blank" rel="noopener">botler-agent</a> 自动写入并构建，这里聚合了各个项目的最新网页。</p>
     </header>
 
     <div class="grid">
@@ -103,7 +111,7 @@
       </a>
     </div>
 
-    <footer>由 botler-agent 自动构建与部署</footer>
+    <footer>由 <a href="https://github.com/crossoverJie/botler-agent" target="_blank" rel="noopener">botler-agent</a> 自动构建与部署</footer>
   </div>
 </body>
 </html>
