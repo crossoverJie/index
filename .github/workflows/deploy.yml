@@ -1,0 +1,78 @@
+name: Deploy Pages & Notify
+
+# Deploy the index repo to GitHub Pages (custom domain crossoverjie.top/index),
+# then send a Telegram notification ONLY after the site is actually live,
+# so the link in the message always points to the freshest version.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Required for GitHub Pages + OIDC used by actions/deploy-pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; queue (don't cancel) new pushes.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # The whole repo is prebuilt single-file HTML (index.html, cook/, daily-log/).
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  notify:
+    # Runs only after the deployment environment is live.
+    needs: deploy
+    if: ${{ needs.deploy.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse deploy info from commit message
+        id: info
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          # deploy.py commits with message: "deploy <project> <stamp>"
+          PROJECT=$(printf '%s\n' "$COMMIT_MSG" | head -1 | sed -n 's/^deploy[[:space:]]\+\([a-z-]*\).*/\1/p')
+          [ -z "$PROJECT" ] && PROJECT="index"
+          BASE="https://crossoverjie.top/index"
+          if [ "$PROJECT" = "index" ]; then URL="$BASE/"; else URL="$BASE/$PROJECT/"; fi
+          {
+            echo "project=$PROJECT"
+            echo "url=$URL"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send Telegram notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          TEXT="✅ Dashboard deployed (live)
+          Project: ${{ steps.info.outputs.project }}
+          Link: ${{ steps.info.outputs.url }}
+          Commit: ${{ github.sha }}
+          Time: $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')"
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$TEXT" '{chat_id:$c, text:$t}')"
