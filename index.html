@@ -14,6 +14,8 @@
     --cook-bg: #ecfdf3;
     --daily: #2563eb;
     --daily-bg: #eff6ff;
+    --english: #db2777;
+    --english-bg: #fdf2f8;
     --ring: rgba(28, 35, 51, 0.06);
   }
   * { box-sizing: border-box; }
@@ -64,6 +66,7 @@
   }
   .cook .icon { background: var(--cook-bg); }
   .daily .icon { background: var(--daily-bg); }
+  .english .icon { background: var(--english-bg); }
   .card-body { flex: 1 1 auto; min-width: 0; }
   .card-body h2 { margin: 0 0 4px; font-size: 17px; }
   .card-body p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
@@ -106,6 +109,15 @@
         <div class="card-body">
           <h2>日常记录</h2>
           <p>排便记录与统计看板</p>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card english" href="./practice-english/">
+        <div class="icon">📖</div>
+        <div class="card-body">
+          <h2>英语生词</h2>
+          <p>生词本复习、追剧标记与字幕查词</p>
         </div>
         <span class="arrow">→</span>
       </a>
