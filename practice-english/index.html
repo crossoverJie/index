@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>生词本</title>
+<style>
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --ink: #1d1b18;
+    --muted: #8a8378;
+    --line: #eae4da;
+    --accent: #1c6b58;
+    --accent-soft: #e8f4ef;
+    --today: #b45309;
+    --today-soft: #fdf3e3;
+    --shadow: 0 1px 2px rgba(29, 27, 24, 0.05);
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121110;
+      --card: #1c1b18;
+      --ink: #f2eee7;
+      --muted: #9b948a;
+      --line: #2c2a25;
+      --accent: #6cc6ab;
+      --accent-soft: #16302a;
+      --today: #e8a857;
+      --today-soft: #2c2317;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 18px 96px; }
+
+  header .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .badge i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 12px 0 6px; letter-spacing: -0.02em; }
+  .sub { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  .search { position: relative; margin-bottom: 12px; }
+  .search input {
+    width: 100%; padding: 13px 42px 13px 15px; font-size: 15px; color: var(--ink);
+    background: var(--card); border: 1px solid var(--line); border-radius: 13px;
+    outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+    font-family: inherit;
+  }
+  .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .search input::-webkit-search-cancel-button { display: none; }
+  .search .x {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent;
+    color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1;
+  }
+  .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 26px; }
+  .chips { display: flex; gap: 7px; flex: 1 1 auto; overflow-x: auto; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: 0 0 auto; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--card); color: var(--muted); font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: inherit; transition: all .15s ease; white-space: nowrap;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .ghost {
+    flex: 0 0 auto; padding: 7px 13px; border-radius: 999px; border: 1px dashed var(--line);
+    background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .ghost[aria-pressed="true"] { border-style: solid; color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+  h2.sec {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 650; letter-spacing: .01em;
+    margin: 0 0 12px; color: var(--ink);
+  }
+  h2.sec .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--today); }
+  h2.sec em { font-style: normal; color: var(--muted); font-weight: 500; font-size: 12.5px; }
+  #todayWrap { margin-bottom: 30px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 11px; }
+
+  .card {
+    position: relative; padding: 14px 15px 12px; background: var(--card);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); cursor: pointer;
+    transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+  }
+  @media (hover: hover) {
+    .card:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); box-shadow: 0 8px 20px rgba(29,27,24,.08); }
+  }
+  .card:active { transform: scale(0.995); }
+  .card.today { border-color: color-mix(in srgb, var(--today) 40%, var(--line)); background: linear-gradient(180deg, var(--today-soft), var(--card) 42%); }
+  .card .w {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    font-size: 23px; line-height: 1.25; letter-spacing: -0.01em; word-break: break-word;
+  }
+  .card .ph {
+    display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+    margin-top: 5px; color: var(--muted); font-size: 12.5px;
+  }
+  .card .ph .ipa { font-family: "Iowan Old Style", Georgia, serif; }
+  .spk {
+    border: 0; border-radius: 5px; background: var(--accent-soft); color: var(--accent);
+    padding: 1px 6px; cursor: pointer; font-size: 11px; font-family: inherit; line-height: 1.55;
+    transition: background .15s ease, color .15s ease;
+  }
+  .spk:active, .spk.playing { background: var(--today-soft); color: var(--today); }
+  .card .cn {
+    margin-top: 9px; font-size: 13.5px; line-height: 1.5; color: var(--ink);
+    transition: filter .18s ease, opacity .18s ease;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  body.conceal .card .cn { filter: blur(5.5px); opacity: .55; }
+  body.conceal .card.reveal .cn { filter: none; opacity: 1; }
+  .pos { color: var(--muted); font-style: italic; font-size: 12px; margin-right: 3px; }
+  .meta {
+    display: flex; align-items: center; gap: 8px; margin-top: 9px;
+    font-size: 11.5px; color: var(--muted);
+  }
+  .tag { padding: 2px 7px; border-radius: 6px; background: color-mix(in srgb, var(--muted) 10%, transparent); }
+  .tag.dict { color: var(--accent); background: var(--accent-soft); }
+  .tag.sub { color: var(--today); background: var(--today-soft); }
+  .meta time { margin-left: auto; font-variant-numeric: tabular-nums; }
+  .card .pill {
+    position: absolute; top: 10px; right: 10px; font-size: 10.5px; font-weight: 600;
+    color: var(--today); background: var(--today-soft); border-radius: 999px; padding: 2px 7px;
+  }
+
+  #empty { color: var(--muted); font-size: 14px; padding: 28px 0; text-align: center; }
+
+  footer { margin-top: 44px; color: color-mix(in srgb, var(--muted) 75%, transparent); font-size: 12px; line-height: 1.7; text-align: center; }
+  footer a { color: inherit; text-underline-offset: 3px; }
+
+  .fab { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); display: flex; justify-content: center; pointer-events: none; background: linear-gradient(180deg, transparent, var(--bg) 45%); }
+  .fab button {
+    pointer-events: auto; width: 100%; max-width: 420px; padding: 13px 20px;
+    border: 0; border-radius: 13px; background: var(--ink); color: var(--bg);
+    font-size: 14.5px; font-weight: 600; font-family: inherit; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(29, 27, 24, .16);
+  }
+  .fab button:active { transform: scale(.99); }
+
+  .modal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 18px; background: rgba(18, 17, 16, .45); backdrop-filter: blur(3px); }
+  .modal[hidden] { display: none; }
+  .sheet {
+    width: 100%; max-width: 420px; background: var(--card); border-radius: 20px;
+    padding: 20px; border: 1px solid var(--line); max-height: 84vh; overflow-y: auto;
+  }
+  .sheet .shead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .sheet .shead b { font-size: 15px; }
+  .sheet .close { border: 0; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px; }
+  .q-cn { font-size: 21px; line-height: 1.5; margin: 6px 0 4px; word-break: break-word; }
+  .q-pos { color: var(--muted); font-size: 12.5px; }
+  .q-input {
+    width: 100%; margin-top: 16px; padding: 12px 14px; font-size: 17px;
+    border: 1px solid var(--line); border-radius: 11px; background: var(--bg); color: var(--ink);
+    outline: none; font-family: "Iowan Old Style", Georgia, serif;
+  }
+  .q-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .q-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn {
+    flex: 1; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); font-size: 14px; font-weight: 550;
+    font-family: inherit; cursor: pointer;
+  }
+  .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .answer { margin-top: 16px; padding: 14px; border-radius: 12px; background: var(--bg); border: 1px dashed var(--line); }
+  .answer .aw { font-family: "Iowan Old Style", Georgia, serif; font-size: 22px; }
+  .answer .verdict { font-size: 12.5px; margin-top: 6px; }
+  .answer .verdict.ok { color: var(--accent); }
+  .answer .verdict.no { color: var(--today); }
+  .progressbar { height: 4px; border-radius: 999px; background: var(--line); overflow: hidden; margin-bottom: 18px; }
+  .progressbar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .25s ease; }
+  .summary { text-align: center; padding: 10px 0 4px; }
+  .summary .big { font-size: 40px; font-family: "Iowan Old Style", Georgia, serif; }
+  .summary p { color: var(--muted); font-size: 13.5px; margin: 6px 0 18px; }
+  .wrong-list { text-align: left; margin: 0 0 16px; padding: 0; list-style: none; font-size: 13.5px; }
+  .wrong-list li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .wrong-list li:last-child { border-bottom: 0; }
+  .wrong-list .m { color: var(--muted); text-align: right; }
+  @media (max-width: 420px) { h1 { font-size: 26px; } .card .w { font-size: 21px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <span class="badge"><i></i>更新于 10-28 16:58</span>
+      <span class="count" id="count">92 词</span>
+    </div>
+    <h1>生词本</h1>
+    <p class="sub">点单词听发音，点释义遮罩自测。美式 / 英式可切换。</p>
+    <div class="search">
+      <input id="q" type="search" placeholder="搜索单词或释义" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      <button class="x" id="clear" hidden aria-label="清空">×</button>
+    </div>
+    <div class="bar">
+      <div class="chips" id="chips">
+        <button class="chip" data-filter="all" aria-pressed="true">全部</button>
+        <button class="chip" data-filter="dict" aria-pressed="false">查词</button>
+        <button class="chip" data-filter="sub" aria-pressed="false">字幕</button>
+      </div>
+      <button class="ghost" id="conceal" aria-pressed="false">遮住释义</button>
+    </div>
+  </header>
+
+  <section id="todayWrap" hidden>
+    <h2 class="sec"><span class="dot"></span>今日推送 <em id="todayCount"></em></h2>
+    <div class="grid" id="todayGrid"></div>
+  </section>
+
+  <section>
+    <h2 class="sec" id="allTitle">全部生词<em id="shownCount"></em></h2>
+    <div class="grid" id="grid"></div>
+    <p id="empty" hidden>没有匹配的生词</p>
+  </section>
+
+  <footer>
+    数据来自 EasyDict 查词记录与字幕练习标记 · 由 <a href="https://github.com/crossoverJie/botler-agent" target="_blank" rel="noopener">botler-agent</a> 生成
+  </footer>
+</div>
+
+<div class="fab"><button id="quizBtn">抽查默写</button></div>
+
+<div class="modal" id="quiz" hidden>
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+const DATA = [{"w":"REPL","us":"","uk":"","pos":"abbr.","cn":"交互式解释器，读取﹣求值﹣输出循环（read-eval-print loop）","src":["dict"],"first":"2026-10-27","last":"2026-10-27"},{"w":"policy","us":"ˈpɑːləsi","uk":"ˈpɒləsi","pos":"n.","cn":"政策，方针；(处事) 原则，策略；保险单","src":["dict"],"first":"2026-10-27","last":"2026-10-27"},{"w":"viral","us":"ˈvaɪrəl","uk":"ˈvaɪrəl","pos":"adj. / n.","cn":"病毒性的，病毒引起的；（与）利用病毒式营销手段（有关）的；互联网上迅速传播的图片（或视频、广…","src":["dict"],"first":"2026-10-26","last":"2026-10-26"},{"w":"Truly","us":"ˈtruːli","uk":"ˈtruːli","pos":"adv.","cn":"真实地，如实地；真正地，完全地；诚挚地，真诚地","src":["dict"],"first":"2026-10-26","last":"2026-10-26"},{"w":"estimated","us":"ˈestɪmeɪtɪd","uk":"ˈestɪmeɪtɪd","pos":"adj. / v.","cn":"估计的，预计的；估计，估算；判断，评价（estimate 的过去式和过去分词）","src":["dict"],"first":"2026-10-26","last":"2026-10-26"},{"w":"topology","us":"təˈpɑːlədʒi","uk":"təˈpɒlədʒi","pos":"n.","cn":"（数学）拓扑学；集合上的拓扑（结构）；网络拓扑（结构）","src":["dict"],"first":"2026-10-23","last":"2026-10-23"},{"w":"precision","us":"prɪˈsɪʒ(ə)n","uk":"prɪˈsɪʒ(ə)n","pos":"adj. / n.","cn":"精确（性），准确（性）；严谨，细致；（测量、计算或说明的）精确化（尤以数字表现）","src":["dict"],"first":"2026-10-23","last":"2026-10-23"},{"w":"construction","us":"kənˈstrʌkʃ(ə)n","uk":"kənˈstrʌkʃn","pos":"n.","cn":"建造，建筑；创立，构建；构造，结构","src":["dict"],"first":"2026-10-23","last":"2026-10-23"},{"w":"coarse","us":"kɔːrs","uk":"kɔːs","pos":"adj.","cn":"粗糙的，粗织的；粗的，大颗粒的；粗鲁的，粗俗的","src":["dict"],"first":"2026-10-23","last":"2026-10-23"},{"w":"spinner","us":"ˈspɪnər","uk":"ˈspɪnə(r)","pos":"n.","cn":"（纺织）纺纱机；纺纱工人；（钓鱼）旋式诱饵，旋转亮片","src":["dict"],"first":"2026-10-22","last":"2026-10-22"},{"w":"complex","us":"kəmˈpleks","uk":"ˈkɒmpleks","pos":"adj. / n.","cn":"复杂的，难懂的；组合的，合成的；（句子）复合的","src":["dict"],"first":"2026-10-22","last":"2026-10-22"},{"w":"epoch","us":"ˈepək","uk":"ˈiːpɒk","pos":"n.","cn":"时代，纪元；值得纪念的事件（或日期）；世（地质年代，纪下分世）","src":["dict"],"first":"2026-10-21","last":"2026-10-21"},{"w":"Vocabulary","us":"vəˈkæbjəleri; voʊˈkæbjəleri","uk":"vəˈkæbjələri; vəʊˈkæbjələri","pos":"n.","cn":"（某人掌握或使用的）全部词汇；（某一语言的）词汇；（某个学科的）专业词汇，术语","src":["dict"],"first":"2026-10-20","last":"2026-10-20"},{"w":"spray bottle","us":"","uk":"","pos":"n.","cn":"喷雾瓶：配有喷雾器的非加压容器，按压手柄即可将液体呈细雾状喷出，常用于盛装清洁剂、水等。","src":["dict"],"first":"2026-09-28","last":"2026-09-28"},{"w":"whisper","us":"ˈwɪspər","uk":"ˈwɪspə(r)","pos":"n. / v.","cn":"耳语，低语，小声说；（私下或秘密地）传说（某事），谣传；（树叶）发沙沙声，（风）发飒飒声，（…","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"tile","us":"taɪl","uk":"taɪl","pos":"n. / v.","cn":"（贴墙或铺地用的）瓷砖，地砖；（铺屋顶的）瓦，瓦片；（拼字游戏、麻将等牌戏中的）（一张）牌","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"setup","us":"ˈsetˌʌp","uk":"ˈsetʌp","pos":"n.","cn":"体制，组织方式；<非正式>栽赃，陷害；（软件或硬件的）安装","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"relay","us":"ˈriːleɪ","uk":"ˈriːleɪ","pos":"n. / v.","cn":"传递，传达（信息、新闻等）；中继转发，转播（广播或电视信号）；重铺，重新铺设（过去式和过去分…","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"Parallelize","us":"ˈpærəleˌlaɪz","uk":"ˈpærəleˌlaɪz","pos":"v.","cn":"平行放置，使……平行于……；（计算机）将（程序、任务、查询等）并行化，使其能在多处理器或多线…","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"Orchestration","us":"ˌɔːrkɪˈstreɪʃn","uk":"ˌɔːkɪˈstreɪʃn","pos":"n.","cn":"管弦乐编曲；配器，配器法；（比喻）和谐的结合，精心安排，统筹","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"Orchestrate","us":"ˈɔːrkɪstreɪt","uk":"ˈɔːkɪstreɪt","pos":"v.","cn":"把……编成管弦乐曲；精心安排，密谋；把……协调地结合起来","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"delegation","us":"ˌdelɪˈɡeɪʃn","uk":"ˌdelɪˈɡeɪʃn","pos":"n.","cn":"代表团；授权，委派","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"coordinate","us":"koʊˈɔːrdɪneɪt","uk":"kəʊˈɔːdɪneɪt","pos":"adj. / n. / v.","cn":"协调，配合；使身体协调；（使颜色、款式、风格等）搭配，配套","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"confidence","us":"ˈkɑːnfɪdəns","uk":"ˈkɒnfɪdəns","pos":"n.","cn":"自信，信心；信任，信赖；把握，肯定","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"concise","us":"kənˈsaɪs","uk":"kənˈsaɪs","pos":"adj.","cn":"简明的，简洁的","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"collisions","us":"kəˈlɪʒnz","uk":"kəˈlɪʒnz","pos":"n.","cn":"（collision 的复数形式）碰撞，相撞，撞击；冲突；（物理学）碰撞","src":["dict"],"first":"2026-09-24","last":"2026-09-24"},{"w":"whose","us":"huːz","uk":"huːz","pos":"det. / pron.","cn":"谁的（疑问代词）；其，……的（关系代词）；谁的（限定词）","src":["dict"],"first":"2026-09-23","last":"2026-09-23"},{"w":"spawn","us":"spɑːn","uk":"spɔːn","pos":"n. / v.","cn":"（鱼、青蛙、软体动物、甲壳类等）产卵；引发，促生；大量生产","src":["dict"],"first":"2026-09-23","last":"2026-09-23"},{"w":"soonest","us":"su:nɪst","uk":"su:nɪst","pos":"adv.","cn":"（soon 的最高级）最早地，最快地，以最短时间；〈旧〉最宁愿地，最愿意地","src":["dict"],"first":"2026-09-23","last":"2026-09-23"},{"w":"reproduce","us":"ˌriːprəˈduːs","uk":"ˌriːprəˈdjuːs","pos":"v.","cn":"复制，翻印；模拟；再制造，再现","src":["dict"],"first":"2026-09-23","last":"2026-09-23"},{"w":"reached","us":"riːtʃt","uk":"riːtʃt","pos":"vi. / vt.","cn":"抵达；达到；伸出（手，臂）","src":["dict"],"first":"2026-09-23","last":"2026-09-23"},{"w":"gather","us":"ˈɡæðər","uk":"ˈɡæðə(r)","pos":"","cn":"vt.&vi. 聚集，召集；收集，采集；认为，推断","src":["dict"],"first":"2026-09-23","last":"2026-09-23"},{"w":"despite","us":"dɪˈspaɪt","uk":"dɪˈspaɪt","pos":"n. / prep. / v.","cn":"尽管，即使；不由自主地，忍不住地；<古>亵渎; 尽管；不顾","src":["dict","sub"],"first":"2026-08-07","last":"2026-09-23"},{"w":"delta","us":"ˈdeltə","uk":"ˈdeltə","pos":"n.","cn":"希腊字母表的第 4 个字母；三角洲；<英>（论文、考试成绩等的）δ等，丁等","src":["dict"],"first":"2026-09-23","last":"2026-09-23"},{"w":"vibrate","us":"ˈvaɪbreɪt","uk":"vaɪˈbreɪt","pos":"v.","cn":"（使）震动，（使）颤动；摇摆，踌躇","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"snapped","us":"snæpt","uk":"snæpt","pos":"v.","cn":"（snap 的过去式和过去分词）突然断裂，啪地绷断；（使啪地）打开或合上，啪地移动；厉声说","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"Smooth","us":"smuːð","uk":"smuːð","pos":"adj. / adv. / n. / v.","cn":"（表面）光滑的，平坦的，平整的；顺利的，无困难的；（动作等）流畅的，（骑马、航行等）平稳的","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"rips","us":"rɪps","uk":"rɪps","pos":"abbr. / n. / v.","cn":"rip 的第三人称单数：撕，撕裂，扯下；迅猛移动，穿过；（非正式）翻录，盗录（音乐、影视等）…","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"Reward","us":"rɪˈwɔːrd","uk":"rɪˈwɔːd","pos":"n. / v.","cn":"奖励，回报；赏格，悬赏金；报偿，报应","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"predictably","us":"prɪˈdɪktəbli","uk":"prɪˈdɪktəbli","pos":"adv.","cn":"可预见地，可预言地，不出所料地","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"fascinating","us":"ˈfæsɪneɪtɪŋ","uk":"ˈfæsɪneɪtɪŋ","pos":"adj. / v.","cn":"极有吸引力的，迷人的；深深吸引，迷住（fascinate 的现在分词形式）","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"enmapanda","us":"","uk":"","pos":"","cn":"enmapanda","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"boundaries","us":"ˈbaʊndriz","uk":"ˈbaʊndriz","pos":"n.","cn":"边界，分界线；界限，限度；（板球）将球击过边界线得分（boundary 的复数）","src":["dict"],"first":"2026-09-22","last":"2026-09-22"},{"w":"retired","us":"rɪˈtaɪərd","uk":"rɪˈtaɪəd","pos":"adj. / v.","cn":"退休的，退役的；（生活方式）隐居的，退隐的；（人）沉默寡言的，不好交际的","src":["dict"],"first":"2026-09-20","last":"2026-09-20"},{"w":"Positional","us":"pəˈzɪʃənəl","uk":"pəˈzɪʃənəl","pos":"adj.","cn":"位置的，定位的；地位的","src":["dict"],"first":"2026-09-20","last":"2026-09-20"},{"w":"repetitive","us":"rɪˈpetətɪv","uk":"rɪˈpetətɪv","pos":"adj.","cn":"重复乏味的；多次重复的","src":["dict"],"first":"2026-09-18","last":"2026-09-18"},{"w":"Raccoon","us":"ræˈkuːn","uk":"rəˈkuːn","pos":"n.","cn":"浣熊，北美浣熊；浣熊毛皮","src":["dict"],"first":"2026-09-18","last":"2026-09-18"},{"w":"nuance","us":"ˈnuːɑːns","uk":"ˈnjuːɑːns","pos":"n. / v.","cn":"细微差别；使产生细微差别","src":["dict"],"first":"2026-09-18","last":"2026-09-18"},{"w":"judgment","us":"ˈdʒʌdʒmənt","uk":"ˈdʒʌdʒmənt","pos":"n.","cn":"判断，看法；判断力，识别力；判决，裁决","src":["dict"],"first":"2026-09-18","last":"2026-09-18"},{"w":"Decision","us":"dɪˈsɪʒ(ə)n","uk":"dɪˈsɪʒ(ə)n","pos":"n.","cn":"决定，抉择；判决，裁定；果断，决断力","src":["dict"],"first":"2026-09-18","last":"2026-09-18"},{"w":"Vintage","us":"ˈvɪntɪdʒ","uk":"ˈvɪntɪdʒ","pos":"adj. / n. / v.","cn":"（葡萄酒的）酿造年份（地点），酿制的酒；制造时期，生产年代；<文>葡萄酒","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"transition","us":"trænˈzɪʃ(ə)n","uk":"trænˈzɪʃ(ə)n","pos":"n. / v.","cn":"过渡，转变；（分子生物）转换；（乐）临时转调","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"Sweden","us":"ˈswiːd(ə)n","uk":"ˈswiːd(ə)n","pos":"n.","cn":"瑞典（欧洲国家）","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"saner","us":"ˈseɪnər","uk":"ˈseɪnə","pos":"adj. / n.","cn":"更健全的；更理智的；更神志正常的（sane 的比较级）","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"problematic","us":"ˌprɑːbləˈmætɪk","uk":"ˌprɒbləˈmætɪk","pos":"adj. / n.","cn":"成问题的，有困难的；未确定的；成问题之事","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"literal","us":"ˈlɪtərəl","uk":"ˈlɪtərəl","pos":"adj. / n.","cn":"字面上的；逐字的；缺乏想象力的，刻板的","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"greater","us":"ˈɡreɪtər","uk":"greɪtə(r)","pos":"adj.","cn":"较大的，更大的（great 的比较级）；用于大城市名或国名等专有名词前，表示“大”，指包括该…","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"gains","us":"ɡeɪnz","uk":"ˈɡeɪnz","pos":"n. / v.","cn":"收益；[经]利益；腰槽","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"exclusively","us":"ɪkˈskluːsɪvli","uk":"ɪkˈskluːsɪvli","pos":"adv.","cn":"仅仅，单独地，专门地；作为唯一的（消息）来源","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"constantly","us":"ˈkɑːnstəntli","uk":"ˈkɒnstəntli","pos":"adv.","cn":"总是，经常地，不断地","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"catalyst","us":"ˈkætəlɪst","uk":"ˈkætəlɪst","pos":"n.","cn":"（化学）催化剂；诱因，诱导者","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"breathe","us":"briːð","uk":"briːð","pos":"v.","cn":"呼吸；呼出，吐出；吸入","src":["dict"],"first":"2026-09-17","last":"2026-09-17"},{"w":"vulnerability","us":"ˌvʌlnərəˈbɪləti","uk":"ˌvʌlnərəˈbɪləti","pos":"n.","cn":"易损性，弱点；（桥牌）局况","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"Syncthing","us":"","uk":"","pos":"","cn":"Syncthing","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"Shared","us":"ʃerd","uk":"ʃeəd","pos":"adj. / v.","cn":"分享的，共有的；共享，合用；分配","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"prevent","us":"prɪˈvent","uk":"prɪˈvent","pos":"v.","cn":"阻止，阻碍；防止，预防；设置障碍","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"mutually","us":"ˈmjuːtʃuəli","uk":"ˈmjuːtʃuəli","pos":"adv.","cn":"相互地，共同地","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"Introducer","us":"ˌɪntrəˈdjʊsər","uk":"ˌɪntrəˈdjuːsə","pos":"n.","cn":"介绍人，引见人；创始者，发起者，引进者；（医学）插管器，导入器","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"frugal","us":"ˈfruːɡ(ə)l","uk":"ˈfruːɡ(ə)l","pos":"adj.","cn":"节俭的，节约的；（饮食）简单的，省钱的","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"essential","us":"ɪˈsenʃ(ə)l","uk":"ɪˈsenʃ(ə)l","pos":"adj. / n.","cn":"必不可少的，非常重要的；基本的，精髓的；（氨基酸、脂肪酸）必需的","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"descriptive","us":"dɪˈskrɪptɪv","uk":"dɪˈskrɪptɪv","pos":"adj.","cn":"描写的，说明的，叙述的；描述性的（学科）","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"continuous","us":"kənˈtɪnjuəs","uk":"kənˈtɪnjuəs","pos":"adj.","cn":"连续不断的，持续的；（语法）进行式的；（函数）连续的","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"bundle","us":"ˈbʌnd(ə)l","uk":"ˈbʌnd(ə)l","pos":"n. / v.","cn":"束，捆，包；非常；一套，一系列","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"authentication","us":"ɔːˌθentɪˈkeɪʃn","uk":"ɔːˌθentɪˈkeɪʃn","pos":"n.","cn":"证明真实性，鉴定；身份验证，认证","src":["dict"],"first":"2026-09-16","last":"2026-09-16"},{"w":"technically","us":"ˈtɛknɪkli","uk":"ˈtɛknɪkli","pos":"adv.","cn":"技术上；严格来说","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"sitcoms","us":"","uk":"","pos":"n.","cn":"情景喜剧（sitcom 的复数）","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"rough","us":"","uk":"","pos":"adj.","cn":"粗糙的；大致的；艰难的","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"rooted","us":"ɹʊtɪd","uk":"ɹʊtɪd","pos":"adj.","cn":"扎根的；根深蒂固的","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"realistic","us":"ˌɹiːjəˈlɪstɪk","uk":"ˌɹiːjəˈlɪstɪk","pos":"adj.","cn":"现实的；逼真的","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"rapidly","us":"ˈɹæpɪdli","uk":"ˈɹæpɪdli","pos":"adv.","cn":"快速地；迅速地","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"portal","us":"ˈpɔːɹtəl","uk":"ˈpɔːɹtəl","pos":"n.","cn":"入口；传送门；门户","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"plot","us":"plɑt","uk":"plɑt","pos":"n.","cn":"情节；阴谋","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"nostalgic","us":"nəˈstældʒɪk","uk":"nəˈstældʒɪk","pos":"adj.","cn":"怀旧的；念旧的","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"mature","us":"məˈt(j)ʊəɹ","uk":"məˈt(j)ʊəɹ","pos":"adj.","cn":"成熟的","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"intertwined","us":"ˌɪntərˈtwaɪnd","uk":"ˌɪntərˈtwaɪnd","pos":"adj.","cn":"交织的；缠绕的","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"emphasize","us":"ˈɛm.fə.saɪz","uk":"ˈɛm.fə.saɪz","pos":"v.","cn":"强调；着重","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"conquer","us":"ˈkɑŋkɚ","uk":"ˈkɑŋkɚ","pos":"v.","cn":"征服；战胜","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"cheesy","us":"ˈtʃiːzi","uk":"ˈtʃiːzi","pos":"adj.","cn":"俗套的；做作的；奶酪味的","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"characteristics","us":"ˌkæɹəktəˈɹɪstɪks","uk":"ˌkæɹəktəˈɹɪstɪks","pos":"n.","cn":"特征；特点（characteristic 的复数）","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"bend","us":"bɛnd","uk":"bɛnd","pos":"v.","cn":"操控；弯曲","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"agency","us":"","uk":"","pos":"n.","cn":"机构；代理处","src":["sub"],"first":"2026-08-07","last":"2026-08-07"},{"w":"squeeze","us":"skwiːz","uk":"skwiːz","pos":"v.","cn":"挤压；捏","src":["sub"],"first":"2026-08-06","last":"2026-08-06"}];
+const TODAY = ["nuance", "catalyst", "vulnerability", "epoch", "nostalgic", "intertwined"];
+
+const state = { q: "", filter: "all" };
+const byWord = new Map(DATA.map(w => [w.w.toLowerCase(), w]));
+
+// ---------- pronunciation ----------
+let currentAudio = null;
+let ttsVoice = null;
+if (window.speechSynthesis) {
+  const pick = () => {
+    const voices = speechSynthesis.getVoices() || [];
+    ttsVoice = voices.find(v => /^en[-_]US/i.test(v.lang)) || voices.find(v => /^en/i.test(v.lang)) || null;
+  };
+  pick();
+  speechSynthesis.onvoiceschanged = pick;
+}
+function speakWithTTS(word, accent) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = accent === "uk" ? "en-GB" : "en-US";
+  if (ttsVoice && accent !== "uk") u.voice = ttsVoice;
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+function speak(word, accent = "us", btn) {
+  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} }
+  const url = "https://dict.youdao.com/dictvoice?audio=" + encodeURIComponent(word) + "&type=" + (accent === "uk" ? 1 : 2);
+  const audio = new Audio(url);
+  audio.preload = "auto";
+  let fellBack = false;
+  const fallback = () => { if (fellBack) return; fellBack = true; speakWithTTS(word, accent); };
+  audio.onerror = fallback;
+  const p = audio.play();
+  if (p && p.catch) p.catch(fallback);
+  currentAudio = audio;
+  if (btn) {
+    btn.classList.add("playing");
+    setTimeout(() => btn.classList.remove("playing"), 900);
+  }
+}
+
+// ---------- rendering ----------
+function cardEl(item, isToday) {
+  const el = document.createElement("article");
+  el.className = "card" + (isToday ? " today" : "");
+  el.dataset.word = item.w.toLowerCase();
+  const ipa = item.us || item.uk || "";
+  const srcTags = item.src.map(s => '<span class="tag ' + s + '">' + (s === "sub" ? "字幕" : "查词") + "</span>").join("");
+  el.innerHTML =
+    (isToday ? '<span class="pill">今日</span>' : "") +
+    '<div class="w">' + esc(item.w) + "</div>" +
+    '<div class="ph">' +
+      (ipa ? '<span class="ipa">/' + esc(ipa) + "/</span>" : "") +
+      '<button class="spk" data-accent="us">美</button>' +
+      '<button class="spk" data-accent="uk">英</button>' +
+    "</div>" +
+    '<div class="cn">' + (item.pos ? '<span class="pos">' + esc(item.pos) + "</span>" : "") + esc(item.cn) + "</div>" +
+    '<div class="meta">' + srcTags + "<time>" + esc(item.last.slice(5)) + "</time></div>";
+
+  el.addEventListener("click", (ev) => {
+    const spk = ev.target.closest(".spk");
+    if (spk) {
+      ev.stopPropagation();
+      speak(item.w, spk.dataset.accent, spk);
+      return;
+    }
+    if (ev.target.closest(".cn")) {
+      if (document.body.classList.contains("conceal")) { el.classList.toggle("reveal"); return; }
+      return;
+    }
+    speak(item.w, "us");
+  });
+  return el;
+}
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+const todayList = TODAY.map(w => byWord.get(w.toLowerCase())).filter(Boolean);
+const todayKeys = new Set(todayList.map(w => w.w.toLowerCase()));
+
+function matches(item) {
+  if (state.filter === "dict" && !item.src.includes("dict")) return false;
+  if (state.filter === "sub" && !item.src.includes("sub")) return false;
+  if (!state.q) return true;
+  const q = state.q.toLowerCase();
+  return item.w.toLowerCase().includes(q) || item.cn.toLowerCase().includes(q);
+}
+
+function renderToday(visible) {
+  const wrap = document.getElementById("todayWrap");
+  wrap.hidden = !visible;
+  if (!visible) return;
+  document.getElementById("todayCount").textContent = todayList.length + " 个词";
+  const grid = document.getElementById("todayGrid");
+  grid.textContent = "";
+  const frag = document.createDocumentFragment();
+  todayList.forEach(item => frag.appendChild(cardEl(item, true)));
+  grid.appendChild(frag);
+}
+
+function render() {
+  // While searching / filtering, today's words join the main list instead of
+  // being pinned above it, so a search never hides a match.
+  const searching = Boolean(state.q) || state.filter !== "all";
+  const showToday = todayList.length > 0 && !searching;
+  renderToday(showToday);
+
+  const list = DATA.filter(matches).filter(w => !(showToday && todayKeys.has(w.w.toLowerCase())));
+  const grid = document.getElementById("grid");
+  grid.textContent = "";
+  const frag = document.createDocumentFragment();
+  list.forEach(item => frag.appendChild(cardEl(item, false)));
+  grid.appendChild(frag);
+  document.getElementById("empty").hidden = list.length > 0;
+  document.getElementById("shownCount").textContent = searching ? " · " + list.length + " 条" : "";
+}
+
+// ---------- interactions ----------
+const qInput = document.getElementById("q");
+qInput.addEventListener("input", () => {
+  state.q = qInput.value.trim();
+  document.getElementById("clear").hidden = !state.q;
+  render();
+});
+document.getElementById("clear").addEventListener("click", () => {
+  qInput.value = ""; state.q = ""; document.getElementById("clear").hidden = true; render(); qInput.focus();
+});
+document.getElementById("chips").addEventListener("click", (ev) => {
+  const chip = ev.target.closest(".chip");
+  if (!chip) return;
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c === chip)));
+  state.filter = chip.dataset.filter;
+  render();
+});
+const concealBtn = document.getElementById("conceal");
+concealBtn.addEventListener("click", () => {
+  const on = document.body.classList.toggle("conceal");
+  concealBtn.setAttribute("aria-pressed", String(on));
+  concealBtn.textContent = on ? "显示释义" : "遮住释义";
+  document.querySelectorAll(".card.reveal").forEach(c => c.classList.remove("reveal"));
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "/" && document.activeElement !== qInput) { ev.preventDefault(); qInput.focus(); }
+});
+
+// ---------- quiz ----------
+const quiz = { list: [], i: 0, right: 0, wrong: [], answered: false };
+const modal = document.getElementById("quiz");
+const sheet = document.getElementById("sheet");
+
+function startQuiz() {
+  const pool = DATA.filter(matches);
+  if (pool.length < 1) return;
+  const shuffled = pool.slice().sort(() => Math.random() - 0.5).slice(0, Math.min(5, pool.length));
+  quiz.list = shuffled; quiz.i = 0; quiz.right = 0; quiz.wrong = []; quiz.answered = false;
+  modal.hidden = false;
+  document.body.style.overflow = "hidden";
+  drawQuiz();
+}
+function closeQuiz() {
+  modal.hidden = true;
+  document.body.style.overflow = "";
+}
+function drawQuiz() {
+  const item = quiz.list[quiz.i];
+  if (!item) return drawSummary();
+  const pct = (quiz.i / quiz.list.length) * 100;
+  sheet.innerHTML =
+    '<div class="shead"><b>抽查默写 ' + (quiz.i + 1) + " / " + quiz.list.length + '</b><button class="close" aria-label="关闭">×</button></div>' +
+    '<div class="progressbar"><i style="width:' + pct + '%"></i></div>' +
+    '<div class="q-pos">' + (item.pos ? esc(item.pos) : "&nbsp;") + '</div>' +
+    '<div class="q-cn">' + esc(item.cn) + "</div>" +
+    '<input class="q-input" id="qi" placeholder="输入英文，回车看答案" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">' +
+    '<div class="q-actions"><button class="btn primary" id="reveal">看答案</button></div>';
+  sheet.querySelector(".close").onclick = closeQuiz;
+  const input = sheet.querySelector("#qi");
+  input.focus({ preventScroll: true });
+  const reveal = () => revealAnswer(item);
+  sheet.querySelector("#reveal").onclick = reveal;
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") { ev.preventDefault(); quiz.answered ? nextQuiz() : reveal(); }
+  });
+  modal.onclick = (ev) => { if (ev.target === modal) closeQuiz(); };
+}
+function revealAnswer(item) {
+  if (quiz.answered) return;
+  quiz.answered = true;
+  const typed = (sheet.querySelector("#qi").value || "").trim().toLowerCase();
+  const ok = typed === item.w.toLowerCase();
+  if (ok) quiz.right++; else quiz.wrong.push(item);
+  const ans = document.createElement("div");
+  ans.className = "answer";
+  ans.innerHTML =
+    '<div class="aw">' + esc(item.w) + " <button class=\"spk\" data-accent=\"us\">美</button> <button class=\"spk\" data-accent=\"uk\">英</button></div>" +
+    (item.us ? '<div class="q-pos">/' + esc(item.us) + "/</div>" : "") +
+    '<div class="verdict ' + (ok ? "ok" : "no") + '">' + (ok ? "✓ 写对了" : (typed ? "✗ 你写的是 " + esc(typed) : "未作答")) + "</div>";
+  ans.querySelectorAll(".spk").forEach(b => b.onclick = () => speak(item.w, b.dataset.accent, b));
+  sheet.querySelector(".q-actions").innerHTML = '<button class="btn primary" id="next">下一个</button>';
+  sheet.appendChild(ans);
+  ans.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  sheet.querySelector("#next").onclick = nextQuiz;
+  sheet.querySelector("#next").focus({ preventScroll: true });
+}
+function nextQuiz() {
+  quiz.i++; quiz.answered = false;
+  if (quiz.i >= quiz.list.length) return drawSummary();
+  drawQuiz();
+}
+function drawSummary() {
+  const total = quiz.list.length;
+  const pct = total ? Math.round((quiz.right / total) * 100) : 0;
+  sheet.innerHTML =
+    '<div class="shead"><b>本轮结果</b><button class="close" aria-label="关闭">×</button></div>' +
+    '<div class="summary"><div class="big">' + quiz.right + " / " + total + "</div>" +
+    "<p>" + (pct === 100 ? "全对，稳！" : pct >= 60 ? "不错，错的再看一眼。" : "这批还得再过一遍。") + "</p></div>" +
+    (quiz.wrong.length
+      ? '<ul class="wrong-list">' + quiz.wrong.map(w => "<li><b>" + esc(w.w) + '</b><span class="m">' + esc(w.cn) + "</span></li>").join("") + "</ul>"
+      : "") +
+    '<div class="q-actions"><button class="btn" id="again">再来一轮</button><button class="btn primary" id="done">完成</button></div>';
+  sheet.querySelector(".close").onclick = closeQuiz;
+  sheet.querySelector("#done").onclick = closeQuiz;
+  sheet.querySelector("#again").onclick = startQuiz;
+  modal.onclick = (ev) => { if (ev.target === modal) closeQuiz(); };
+}
+document.getElementById("quizBtn").onclick = startQuiz;
+document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !modal.hidden) closeQuiz(); });
+
+render();
+</script>
+</body>
+</html>
